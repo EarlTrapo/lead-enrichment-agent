@@ -2,6 +2,8 @@
 
 An automated B2B lead enrichment pipeline built on n8n. Triggers when new company records land in a Google Sheet, researches each company using web search, extracts structured profile data, and then runs a contact finder to pull verified decision-maker emails — all without manual input.
 
+**Automates your lead generation and email outreach.**
+
 ---
 
 ## What it does
@@ -120,8 +122,7 @@ Acme Corp    | acme.com
 lead-enrichment-agent/
 ├── leadEnrichment.json    # Full n8n workflow export
 ├── README.md
-└── assets/
-    └── workflow.png       # Workflow canvas screenshot
+└── leadEnrichment.png       # Workflow canvas screenshot
 ```
 
 ---
