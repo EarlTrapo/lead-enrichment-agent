@@ -1,0 +1,491 @@
+{
+  "name": "lead enrichment",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Company name: {{ $json.company_name}} \nURL: {{ $json.domain }}",
+        "options": {
+          "systemMessage": "You are a B2B research assistant. For every company you receive, \nyou MUST use your search tool to look it up. Never answer from memory.\n\nYour job is to return a brief factual profile of the company.\n\nAlways return raw JSON only. No markdown. No explanation. No backticks.\n\nFormat:\n{\n  \"company_name\": \"Atlas Tools & Machinery\",\n  \"domain\": \"atlas-machinery.com\",\n  \"description\": \"One sentence about what the company does.\",\n  \"employee_estimate\": \"5-10\",\n  \"location\": \"Toronto, ON\",\n  \"decision_maker_hint\": \"Any name or title found on the website or web\",\n  \"notes\": \"Anything relevant — pain points, owner-operated, etc.\"\n}\n\nIf a field cannot be confirmed, set its value to null. Never fabricate."
+        }
+      },
+      "id": "9992cb7e-79d8-4144-9ba9-da0525b3e3e9",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -688,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 5,
+        "options": {}
+      },
+      "id": "c58c654c-7836-45ee-9baf-bc9a7a10f208",
+      "name": "Loop Per Company",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -944,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "leads",
+        "options": {}
+      },
+      "id": "8ac210a7-fcc6-493c-b28f-939229213162",
+      "name": "Collect Valid Profiles",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -640,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "model": "minimax/minimax-m2.5:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -1024,
+        384
+      ],
+      "id": "e707a65e-42b4-4b90-9860-2adbd2d259cc",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "WNA55d3SRYOh54q2",
+          "name": "openrouter workflow-key1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Search in Tavily",
+        "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Query', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "@tavily/n8n-nodes-tavily.tavilyTool",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        400
+      ],
+      "id": "283eac43-3cd0-42a0-9b44-de400d957274",
+      "name": "Search in Tavily",
+      "credentials": {
+        "tavilyApi": {
+          "id": "wmjs2mYKDQogrrrL",
+          "name": "Tavily account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=Company name: {{ $json.company_name}} \nURL: {{ $json.domain }}",
+        "tableName": "n8n_chat_memory",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -672,
+        368
+      ],
+      "id": "892cf1ee-3803-4bb8-a379-94e49d97cbc6",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "uGFmLMnCcyUH5N9v",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1lqWSpKanHTdhvSZzdYjEI-f3poCGX57THFKZ56v8sCU",
+          "mode": "list",
+          "cachedResultName": "cold email",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1lqWSpKanHTdhvSZzdYjEI-f3poCGX57THFKZ56v8sCU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 263139313,
+          "mode": "list",
+          "cachedResultName": "list1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1lqWSpKanHTdhvSZzdYjEI-f3poCGX57THFKZ56v8sCU/edit#gid=263139313"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1264,
+        112
+      ],
+      "id": "9383638c-829d-4b55-be67-9df9fef71ed1",
+      "name": "lead data trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "O9p5rgGjbJ9LX4QP",
+          "name": "TrapoTV Sheet"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -208,
+        128
+      ],
+      "id": "058cb314-3437-45f0-83b2-59a76254fa6d",
+      "name": "Wait",
+      "webhookId": "3ae27f81-89a0-432d-a233-dfea412a9728"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-haiku-4-5-20251001",
+          "mode": "list",
+          "cachedResultName": "Claude Haiku 4.5"
+        },
+        "options": {
+          "maxTokensToSample": 1024,
+          "temperature": 0.3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        -832,
+        352
+      ],
+      "id": "e19d4fbd-6102-4c84-8408-b890dfb1c953",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "G3gdXebCaKsHNSQW",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1lqWSpKanHTdhvSZzdYjEI-f3poCGX57THFKZ56v8sCU",
+          "mode": "list",
+          "cachedResultName": "cold email",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1lqWSpKanHTdhvSZzdYjEI-f3poCGX57THFKZ56v8sCU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1169742904,
+          "mode": "list",
+          "cachedResultName": "enriched",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1lqWSpKanHTdhvSZzdYjEI-f3poCGX57THFKZ56v8sCU/edit#gid=1169742904"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "company_name": "={{ $json.company_name }}",
+            "domain": "={{ $json.domain }}",
+            "description": "={{ $json.description }}",
+            "employee_estimate": "={{ $json.employee_estimate }}",
+            "location": "={{ $json.location }}",
+            "decision_maker_hint": "={{ $json.decision_maker_hint }}",
+            "notes": "={{ $json.notes }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "company_name",
+              "displayName": "company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "domain",
+              "displayName": "domain",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "employee_estimate",
+              "displayName": "employee_estimate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "decision_maker_hint",
+              "displayName": "decision_maker_hint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -288,
+        -32
+      ],
+      "id": "7c314936-c8a4-433b-a98f-b9c5b4cefe53",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "W9oTc1Ha99BxbOjT",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = [];\n\nconst leads = $input.first().json.leads ?? [];\n\nfor (const lead of leads) {\n  const raw = lead.output ?? '';\n  \n  const cleaned = raw\n    .replace(/```json/gi, '')\n    .replace(/```/g, '')\n    .replace(/\\\\n/g, ' ')\n    .replace(/\\n/g, ' ')\n    .trim();\n\n  let parsed;\n  try {\n    parsed = JSON.parse(cleaned);\n  } catch (e) {\n    parsed = {\n      company_name: null,\n      domain: null,\n      description: null,\n      employee_estimate: null,\n      location: null,\n      decision_maker_hint: null,\n      notes: cleaned.slice(0, 300)\n    };\n  }\n\n  results.push({ json: parsed });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        -32
+      ],
+      "id": "561a2485-95b8-4f01-83ce-8c79bff0ab18",
+      "name": "extract fields"
+    },
+    {
+      "parameters": {
+        "actorSource": "store",
+        "actorId": {
+          "__rl": true,
+          "value": "T1XDXWc1L92AfIJtd",
+          "mode": "list",
+          "cachedResultName": "Leads Scraper ✅ $1/1k with EMAILS ✅ Apollo | LinkedIn Profile (peakydev/leads-scraper-ppe)",
+          "cachedResultUrl": "https://console.apify.com/actors/T1XDXWc1L92AfIJtd/input"
+        },
+        "customBody": "={\n    \"companyCountry\": [\n        \"Australia\"\n    ],\n    \"companyDomain\": [\n        \"{{ $json.domain }}\"\n    ],\n    \"contactEmailStatus\": \"verified\",\n    \"includeEmails\": true,\n    \"personTitle\": [\n        \"founder\",\n        \"coo\",\n        \"partner\",\n        \"head of operations\",\n        \"vp of operations\",\n        \"head of client services\",\n        \"head of client success\",\n        \"director\",\n        \"\"\n    ],\n    \"totalResults\": 100\n}",
+        "timeout": 120000,
+        "memory": 256,
+        "build": "latest"
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        -32
+      ],
+      "id": "69f63d44-271a-41d5-8eba-60a911d21b1b",
+      "name": "Run an Actor",
+      "credentials": {
+        "apifyApi": {
+          "id": "ERSUWgIbpKspjEZl",
+          "name": "Apify1"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Per Company": {
+      "main": [
+        [
+          {
+            "node": "Collect Valid Profiles",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Valid Profiles": {
+      "main": [
+        [
+          {
+            "node": "extract fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Search in Tavily": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "lead data trigger": {
+      "main": [
+        [
+          {
+            "node": "Loop Per Company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Per Company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "extract fields": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Run an Actor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "65a8821e-2cde-4759-a4e7-04788c1ad50f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "074a9a005e6d363bb9bb03784dbbb06b7cfa48b551133b93ee590aede0fc3d25"
+  },
+  "id": "I15372H791OOZd9R",
+  "tags": []
+}
